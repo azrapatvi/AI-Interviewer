@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Report - AI Interviewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      animation: slideUp 0.5s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .header h1 { font-size: 32px; margin-bottom: 10px; }
+    .header p { opacity: 0.9; font-size: 16px; }
+
+    .content { padding: 40px; }
+
+    .score-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .score-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .score-card:hover { transform: translateY(-5px); }
+
+    .score-card h3 {
+      color: #555;
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-value {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section { margin-bottom: 30px; }
+    .section h2 {
+      color: #333;
+      font-size: 22px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .points-list { list-style: none; padding: 0; }
+    .points-list li {
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+    .points-list li:hover { background: #e9ecef; transform: translateX(5px); }
+    .best-point { border-left-color: #28a745; }
+    .lagging-point { border-left-color: #dc3545; }
+
+    .overall-summary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+    }
+
+    .overall-summary h3 { margin-bottom: 15px; font-size: 20px; }
+    .overall-summary p { line-height: 1.8; font-size: 16px; }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 15px 40px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    .btn-secondary:hover { background: #667eea; color: white; }
+
+    .loading { text-align: center; padding: 40px; }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .interview-details {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-weight: 600; color: #555; }
+    .detail-value { color: #333; }
+
+    .fade-in { animation: fadeIn 1s ease-in forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .empty-section {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Interview Completed!</h1>
+      <p>Here's your comprehensive performance report</p>
+    </div>
+
+    <div class="content" id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Generating your report...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+const urlParams = new URLSearchParams(window.location.search);
+const interviewId = urlParams.get('id');
+
+async function loadReport() {
+  try {
+    console.log('📊 Loading report for ID:', interviewId);
+    const response = await fetch(`/get_interview_report?id=${interviewId}`);
+    const data = await response.json();
+
+    console.log('📄 Report data:', data);
+
+    if (data.success) {
+      displayReport(data.report);
+    } else {
+      showError('Failed to load report: ' + (data.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('❌ Error loading report:', error);
+    showError('Error loading report');
+  }
+}
+
+function displayReport(report) {
+  const content = document.getElementById('content');
+  
+  // Check if this is a completed interview with answers
+  const hasAnswers = report.accuracy > 0 || report.overallScore > 0;
+  const hasBestPoints = report.bestPoints && report.bestPoints.length > 0;
+  
+  let bestPointsHTML = '';
+  if (hasBestPoints) {
+    bestPointsHTML = `
+      <div class="section">
+        <h2>✅ Best Points</h2>
+        <ul class="points-list">
+          ${report.bestPoints.map(p => `<li class="best-point">${p}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  } else if (!hasAnswers) {
+    bestPointsHTML = `
+      <div class="section">
+        <h2>✅ Best Points</h2>
+        <div class="empty-section">
+          No answers were provided during this interview. Please complete the interview to receive personalized feedback.
+        </div>
+      </div>
+    `;
+  }
+  
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="interview-details">
+        <div class="detail-row">
+          <span class="detail-label">Interview Date:</span>
+          <span class="detail-value">${report.date || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Duration:</span>
+          <span class="detail-value">${report.duration || '0:00'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Questions Answered:</span>
+          <span class="detail-value">${report.totalQuestions || 0}</span>
+        </div>
+      </div>
+
+      <div class="score-section">
+        <div class="score-card">
+          <h3>Confidence</h3>
+          <div class="score-value">${report.confidence || 0}%</div>
+        </div>
+        <div class="score-card">
+          <h3>Accuracy</h3>
+          <div class="score-value">${report.accuracy || 0}%</div>
+        </div>
+        <div class="score-card">
+          <h3>Overall Score</h3>
+          <div class="score-value">${report.overallScore || 0}%</div>
+        </div>
+      </div>
+
+      <div class="overall-summary">
+        <h3>📊 Overall Performance Summary</h3>
+        <p>${report.overallSummary || 'No summary available'}</p>
+      </div>
+
+      ${bestPointsHTML}
+
+      <div class="section">
+        <h2>⚠️ Areas for Improvement</h2>
+        <ul class="points-list">
+          ${(report.laggingPoints || []).map(p => `<li class="lagging-point">${p}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>💡 Recommendations</h2>
+        <ul class="points-list">
+          ${(report.recommendations || []).map(p => `<li>${p}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="downloadPDF()">📥 Download PDF</button>
+        <button class="btn btn-primary" onclick="confirmAndGo()">✅ OK / Back to Dashboard</button>
+      </div>
+    </div>
+  `;
+}
+
+function showError(message) {
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div style="text-align: center; padding: 40px;">
+      <h2 style="color: #dc3545; margin-bottom: 20px;">❌ ${message}</h2>
+      <button class="btn btn-primary" onclick="goToDashboard()">Back to Dashboard</button>
+    </div>`;
+}
+
+async function downloadPDF() {
+  try {
+    console.log('📥 Downloading PDF for:', interviewId);
+    const response = await fetch(`/download_report_pdf?id=${interviewId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to download PDF');
+    }
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `interview_report_${interviewId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    console.log('✅ PDF downloaded successfully');
+  } catch (error) {
+    console.error('❌ Error downloading PDF:', error);
+    alert('Failed to download PDF');
+  }
+}
+
+function confirmAndGo() {
+  console.log('✅ Redirecting to dashboard...');
+  window.location.href = '/index';
+}
+
+function goToDashboard() {
+  window.location.href = '/index';
+}
+
+// Load report on page load
+if (interviewId) {
+  console.log('🚀 Starting report load...');
+  loadReport();
+} else {
+  console.error('❌ No interview ID provided');
+  showError('No interview ID provided');
+}
+  </script>
+</body>
+</html>

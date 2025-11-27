@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Interviewer - Secure Interview</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    html, body {
+      background: #0b1120;
+      margin: 0;
+      font-family: "Inter", system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: white;
+    }
+
+    .security-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .security-banner.verified {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .security-banner.warning {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      animation: pulse-red 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .security-icon {
+      font-size: 18px;
+      animation: spin 2s linear infinite;
+    }
+
+    .security-banner.verified .security-icon {
+      animation: none;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+      max-width: 1600px;
+      margin-top: 80px;
+      padding: 20px;
+    }
+
+    model-viewer {
+      width: 800px;
+      height: 650px;
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 20%, #1a2a40, #0b1120);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+      flex-shrink: 0;
+    }
+
+    .camera-container {
+      position: relative;
+      width: 100%;
+      height: 650px;
+    }
+
+    .real_time_capture {
+      width: 100%;
+      height: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+      background: #101a30;
+      position: relative;
+    }
+
+    #cameraFeed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .face-detection-overlay {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 15px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .face-detection-overlay.detected {
+      color: #10b981;
+      border: 2px solid #10b981;
+    }
+
+    .face-detection-overlay.not-detected {
+      color: #ef4444;
+      border: 2px solid #ef4444;
+    }
+
+    .face-detection-overlay.mismatch {
+      color: #f59e0b;
+      border: 2px solid #f59e0b;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    .detected .status-indicator {
+      background: #10b981;
+    }
+
+    .not-detected .status-indicator {
+      background: #ef4444;
+    }
+
+    .mismatch .status-indicator {
+      background: #f59e0b;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    button {
+      margin-top: 25px;
+      background: hsl(216, 84%, 52%);
+      border: none;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      position: relative;
+      z-index: 10;
+    }
+
+    button:hover {
+      background: #388bff;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .warning-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .warning-modal.show {
+      display: flex;
+    }
+
+    .warning-content {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 500px;
+      text-align: center;
+      color: #1f2937;
+    }
+
+    .warning-icon {
+      width: 80px;
+      height: 80px;
+      background: #fee2e2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .warning-icon i {
+      font-size: 40px;
+      color: #ef4444;
+    }
+
+    .warning-content h3 {
+      color: #1f2937;
+      margin-bottom: 15px;
+    }
+
+    .warning-content p {
+      color: #6b7280;
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+
+    .warning-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-warning-action {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-retry {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-retry:hover {
+      background: #5568d3;
+    }
+
+    .btn-exit {
+      background: #e5e7eb;
+      color: #4b5563;
+    }
+
+    .btn-exit:hover {
+      background: #d1d5db;
+    }
+
+    /* 📱 Responsive */
+    @media (max-width: 1100px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+      model-viewer, .camera-container {
+        width: 90%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="security-banner" id="securityBanner">
+    <i class="fas fa-shield-alt security-icon"></i>
+    <span id="securityStatus">Verifying your identity...</span>
+  </div>
+
+  <div class="container">
+    <!-- 🧑‍💼 3D Model -->
+    <model-viewer
+      src="/static/model.glb"
+      camera-orbit="-25deg 90deg 2m"
+      camera-target="0m 1.5m 0m"
+      field-of-view="5deg"
+      shadow-intensity="1"
+      disable-zoom
+      disable-pan
+      disable-tap
+      autoplay
+      environment-image="neutral">
+    </model-viewer>
+
+    <!-- 🎥 Live Camera Feed -->
+    <div class="camera-container">
+      <div class="real_time_capture">
+        <img id="cameraFeed" src="/video_feed" alt="Live Feed">
+        <div class="face-detection-overlay not-detected" id="faceStatus">
+          <div class="status-indicator"></div>
+          <span id="faceStatusText">Verifying...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="startBtn" class="btn btn-primary" disabled>Start Interview</button>
+
+  <!-- Warning Modal -->
+  <div class="warning-modal" id="warningModal">
+    <div class="warning-content">
+      <div class="warning-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3>Identity Verification Failed</h3>
+      <p id="warningMessage">The person in front of the camera does not match the registered user. Please ensure you are the account holder.</p>
+      <div class="warning-actions">
+        <button class="btn-warning-action btn-retry" id="retryBtn">Try Again</button>
+        <button class="btn-warning-action btn-exit" id="exitBtn">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let verificationInterval;
+    let isVerified = false;
+    let failureCount = 0;
+    const MAX_FAILURES = 3;
+
+    const params = new URLSearchParams(window.location.search);
+    const domain = params.get("domain");
+
+    async function captureAndVerifyFace() {
+      try {
+        const video = document.getElementById('cameraFeed');
+        const canvas = document.createElement('canvas');
+        
+        // Create a temporary image to capture current frame
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = video.src;
+        
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
+
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = canvas.toDataURL('image/jpeg');
+        
+        const formData = new FormData();
+        formData.append('face_image', imageData);
+        
+        const response = await fetch('/check_interview_face', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          isVerified = true;
+          failureCount = 0;
+          updateSecurityStatus('verified', 'Identity Verified - Secure Mode Active');
+          updateFaceStatus('detected', 'Face Verified');
+          document.getElementById('startBtn').disabled = false;
+        } else {
+          isVerified = false;
+          failureCount++;
+          updateSecurityStatus('warning', 'Identity Verification Failed');
+          updateFaceStatus('mismatch', 'Face Mismatch');
+          
+          if (failureCount >= MAX_FAILURES) {
+            showWarningModal(result.message || 'Multiple verification failures detected.');
+          }
+        }
+        
+      } catch (error) {
+        console.error('Face verification error:', error);
+        updateFaceStatus('not-detected', 'Verification Error');
+      }
+    }
+
+    function updateSecurityStatus(status, message) {
+      const banner = document.getElementById('securityBanner');
+      const statusText = document.getElementById('securityStatus');
+      
+      banner.className = `security-banner ${status}`;
+      statusText.textContent = message;
+    }
+
+    function updateFaceStatus(status, message) {
+      const faceStatus = document.getElementById('faceStatus');
+      const statusText = document.getElementById('faceStatusText');
+      
+      faceStatus.className = `face-detection-overlay ${status}`;
+      statusText.textContent = message;
+    }
+
+    function showWarningModal(message) {
+      const modal = document.getElementById('warningModal');
+      const warningMessage = document.getElementById('warningMessage');
+      
+      warningMessage.textContent = message;
+      modal.classList.add('show');
+      
+      // Stop verification
+      clearInterval(verificationInterval);
+    }
+
+    function hideWarningModal() {
+      const modal = document.getElementById('warningModal');
+      modal.classList.remove('show');
+      failureCount = 0;
+      startVerification();
+    }
+
+    function startVerification() {
+      // Initial verification
+      captureAndVerifyFace();
+      
+      // Continuous verification every 5 seconds
+      verificationInterval = setInterval(captureAndVerifyFace, 5000);
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (domain && isVerified) {
+        window.location.href = `/start_interview?domain=${encodeURIComponent(domain)}`;
+      } else if (!isVerified) {
+        alert('Please wait for face verification to complete.');
+      } else {
+        alert('No domain selected!');
+      }
+    });
+
+    document.getElementById('retryBtn').addEventListener('click', hideWarningModal);
+    
+    document.getElementById('exitBtn').addEventListener('click', () => {
+      window.location.href = '/logout';
+    });
+
+    // Start verification when page loads
+    window.addEventListener('load', () => {
+      setTimeout(startVerification, 2000); // Give camera feed time to start
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (verificationInterval) {
+        clearInterval(verificationInterval);
+      }
+    });
+  </script>
+</body>
+</html>

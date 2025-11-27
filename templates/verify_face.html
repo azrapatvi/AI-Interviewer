@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Face - AI Interviewer</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .verify-container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .verify-box {
+      background: white;
+      border-radius: 25px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    .verify-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .verify-icon i {
+      font-size: 35px;
+      color: white;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    }
+
+    h2 {
+      color: #1f2937;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    #videoPreview {
+      width: 100%;
+      max-width: 450px;
+      height: 350px;
+      border-radius: 20px;
+      background: #000;
+      margin: 0 auto 20px;
+      display: block;
+      object-fit: cover;
+      border: 4px solid #667eea;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .verify-status {
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .verify-status.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 2px solid #3b82f6;
+    }
+
+    .verify-status.success {
+      background: #d1fae5;
+      color: #047857;
+      border: 2px solid #10b981;
+    }
+
+    .verify-status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 2px solid #ef4444;
+    }
+
+    .verify-status.warning {
+      background: #fef3c7;
+      color: #92400e;
+      border: 2px solid #f59e0b;
+    }
+
+    .btn-verify {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 35px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-verify:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-verify:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .back-link {
+      margin-top: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .back-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+
+    .instructions {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .instructions h6 {
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .instructions ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .instructions li {
+      color: #4b5563;
+      font-size: 13px;
+      padding: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instructions li i {
+      color: #667eea;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .verify-box {
+        padding: 30px 20px;
+      }
+      #videoPreview {
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container verify-container">
+    <div class="verify-box">
+      <div class="verify-icon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+
+      <h2>Face Verification</h2>
+      <p class="subtitle">Please verify your identity to continue</p>
+
+      <div class="instructions">
+        <h6><i class="fas fa-info-circle"></i> Instructions:</h6>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> Position your face in the center of the frame</li>
+          <li><i class="fas fa-check-circle"></i> Ensure good lighting on your face</li>
+          <li><i class="fas fa-check-circle"></i> Remove sunglasses or face coverings</li>
+          <li><i class="fas fa-check-circle"></i> Look directly at the camera</li>
+        </ul>
+      </div>
+
+      <video id="videoPreview" autoplay></video>
+
+      <div class="verify-status info" id="statusMessage">
+        <i class="fas fa-camera"></i>
+        <span>Position your face and click Verify</span>
+      </div>
+
+      <button class="btn-verify" id="verifyBtn">
+        <i class="fas fa-fingerprint"></i> Verify My Face
+      </button>
+
+      <div class="back-link">
+        <a href="/"><i class="fas fa-arrow-left"></i> Back to Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let videoStream = null;
+    let verifying = false;
+
+    async function startCamera() {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480, facingMode: 'user' } 
+        });
+        document.getElementById('videoPreview').srcObject = videoStream;
+      } catch (err) {
+        showStatus('error', 'Camera access denied! Please enable camera permissions.');
+        console.error('Camera error:', err);
+      }
+    }
+
+    function showStatus(type, message) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.className = `verify-status ${type}`;
+      
+      let icon = 'fa-info-circle';
+      if (type === 'success') icon = 'fa-check-circle';
+      else if (type === 'error') icon = 'fa-exclamation-circle';
+      else if (type === 'warning') icon = 'fa-exclamation-triangle';
+      
+      statusEl.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+    }
+
+    async function verifyFace() {
+      if (verifying) return;
+      
+      verifying = true;
+      const verifyBtn = document.getElementById('verifyBtn');
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = '<div class="spinner"></div> Verifying...';
+      
+      try {
+        const video = document.getElementById('videoPreview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        
+        const imageData = canvas.toDataURL('image/jpeg');
+        
+        showStatus('warning', 'Analyzing your face...');
+        
+        const formData = new FormData();
+        formData.append('face_image', imageData);
+        
+        const response = await fetch('/verify_face', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showStatus('success', 'Face verified successfully! Redirecting...');
+          
+          // Stop camera
+          if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+          }
+          
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        } else {
+          showStatus('error', result.message || 'Face verification failed. Please try again.');
+          verifyBtn.disabled = false;
+          verifyBtn.innerHTML = '<i class="fas fa-redo"></i> Try Again';
+        }
+        
+      } catch (error) {
+        console.error('Verification error:', error);
+        showStatus('error', 'Verification failed. Please try again.');
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = '<i class="fas fa-redo"></i> Try Again';
+      } finally {
+        verifying = false;
+      }
+    }
+
+    document.getElementById('verifyBtn').addEventListener('click', verifyFace);
+
+    // Start camera on load
+    window.addEventListener('load', startCamera);
+
+    // Cleanup on unload
+    window.addEventListener('beforeunload', function() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+    });
+  </script>
+</body>
+</html>

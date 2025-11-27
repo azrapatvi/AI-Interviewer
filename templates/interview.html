@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Interviewer - Face Verification</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    html, body {
+      background: #0b1120;
+      margin: 0;
+      font-family: "Inter", system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: white;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+      max-width: 1600px;
+    }
+
+    model-viewer {
+      width: 800px;
+      height: 650px;
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 20%, #1a2a40, #0b1120);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+      flex-shrink: 0;
+    }
+
+    .real_time_capture {
+      width: 100%;
+      height: 650px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+      background: #101a30;
+      position: relative;
+    }
+
+    #cameraFeed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    #videoElement {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .verification-status {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      z-index: 10;
+    }
+
+    .status-verifying {
+      color: #fbbf24;
+      border: 2px solid #fbbf24;
+    }
+
+    .status-verified {
+      color: #10b981;
+      border: 2px solid #10b981;
+    }
+
+    .status-failed {
+      color: #ef4444;
+      border: 2px solid #ef4444;
+    }
+
+    .status-warning {
+      color: #f97316;
+      border: 2px solid #f97316;
+    }
+
+    button {
+      margin-top: 25px;
+      background: hsl(216, 84%, 52%);
+      border: none;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #388bff;
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 500px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      border: 2px solid #ef4444;
+    }
+
+    .modal-content h3 {
+      color: #ef4444;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    .modal-content p {
+      color: #e2e8f0;
+      margin-bottom: 25px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .modal-content button {
+      background: #ef4444;
+      margin: 5px;
+    }
+
+    .modal-content button:hover {
+      background: #dc2626;
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+      model-viewer, .real_time_capture {
+        width: 90%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- 3D Model -->
+    <model-viewer
+      src="/static/model.glb"
+      camera-orbit="-25deg 90deg 2m"
+      camera-target="0m 1.5m 0m"
+      field-of-view="5deg"
+      shadow-intensity="1"
+      disable-zoom
+      disable-pan
+      disable-tap
+      autoplay
+      environment-image="neutral">
+    </model-viewer>
+
+    <!-- Live Camera Feed -->
+    <div class="real_time_capture">
+      <div id="verificationStatus" class="verification-status status-verifying">
+        🔍 Initializing face verification...
+      </div>
+      <video id="videoElement" autoplay playsinline></video>
+      <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+  </div>
+
+  <button id="startBtn" disabled>🔒 Verifying Identity...</button>
+
+  <!-- Warning Modal -->
+  <div id="warningModal" class="modal">
+    <div class="modal-content">
+      <h3>⚠️ Multiple Faces Detected!</h3>
+      <p id="warningMessage"></p>
+      <button id="retryBtn">Try Again</button>
+      <button id="cancelBtn">Cancel Interview</button>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div id="errorModal" class="modal">
+    <div class="modal-content">
+      <h3>❌ Verification Failed</h3>
+      <p id="errorMessage"></p>
+      <button id="errorOkBtn">Go Back</button>
+    </div>
+  </div>
+
+  <script>
+    let videoStream = null;
+    let verificationInterval = null;
+    let isVerified = false;
+    let warningCount = 0;
+    const MAX_WARNINGS = 1;
+
+    const statusDiv = document.getElementById('verificationStatus');
+    const startBtn = document.getElementById('startBtn');
+    const warningModal = document.getElementById('warningModal');
+    const errorModal = document.getElementById('errorModal');
+
+    // Get domain from URL
+    const params = new URLSearchParams(window.location.search);
+    const domain = params.get("domain") || "General";
+
+    // Initialize camera
+    async function initCamera() {
+      try {
+        const video = document.getElementById('videoElement');
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+        video.srcObject = videoStream;
+        
+        // Wait for video to be ready
+        await new Promise(resolve => {
+          video.onloadedmetadata = () => resolve();
+        });
+
+        // Start verification
+        startVerification();
+      } catch (error) {
+        showError("Camera access denied. Please enable camera permissions.");
+        console.error("Camera error:", error);
+      }
+    }
+
+    // Capture frame from video
+    function captureFrame() {
+      const video = document.getElementById('videoElement');
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
+      return canvas.toDataURL('image/jpeg', 0.8);
+    }
+
+    // Verify face with backend
+    async function verifyFace() {
+      try {
+        const imageData = captureFrame();
+        
+        const formData = new FormData();
+        formData.append('face_image', imageData);
+
+        const response = await fetch('/check_interview_face', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error("Verification error:", error);
+        return { success: false, message: "Network error" };
+      }
+    }
+
+    // Start continuous verification
+    function startVerification() {
+      updateStatus('verifying', '🔍 Verifying your identity...');
+      
+      verificationInterval = setInterval(async () => {
+        const result = await verifyFace();
+        
+        if (result.success) {
+          // Face verified successfully
+          if (!isVerified) {
+            isVerified = true;
+            updateStatus('verified', '✅ Identity Verified! You may start the interview.');
+            startBtn.disabled = false;
+            startBtn.textContent = '🚀 Start Interview';
+            
+            // Continue monitoring for multiple faces
+            continueMonitoring();
+          }
+        } else {
+          // Verification failed
+          if (result.message && result.message.includes('multiple') || result.message.includes('more than one')) {
+            handleMultipleFaces(result.message);
+          } else {
+            isVerified = false;
+            startBtn.disabled = true;
+            startBtn.textContent = '🔒 Verifying Identity...';
+            updateStatus('failed', `❌ ${result.message || 'Face not recognized'}`);
+          }
+        }
+      }, 2000); // Check every 2 seconds
+    }
+
+    // Continue monitoring after verification
+    function continueMonitoring() {
+      // Keep checking for multiple faces
+      if (verificationInterval) {
+        clearInterval(verificationInterval);
+      }
+      
+      verificationInterval = setInterval(async () => {
+        const result = await verifyFace();
+        
+        if (!result.success) {
+          if (result.message && (result.message.includes('multiple') || result.message.includes('more than one'))) {
+            handleMultipleFaces(result.message);
+          } else {
+            updateStatus('warning', '⚠️ Face not detected. Please stay in frame.');
+            startBtn.disabled = true;
+            isVerified = false;
+          }
+        } else {
+          if (!isVerified) {
+            isVerified = true;
+            updateStatus('verified', '✅ Identity Verified!');
+            startBtn.disabled = false;
+          }
+        }
+      }, 3000);
+    }
+
+    // Handle multiple faces detected
+    function handleMultipleFaces(message) {
+      clearInterval(verificationInterval);
+      stopCamera();
+      
+      warningCount++;
+      
+      const warningMessage = document.getElementById('warningMessage');
+      
+      if (warningCount <= MAX_WARNINGS) {
+        warningMessage.textContent = `Multiple people detected in the frame. Only the registered candidate should be visible. This is warning ${warningCount} of ${MAX_WARNINGS}. Please ensure you are alone.`;
+        warningModal.style.display = 'flex';
+      } else {
+        // Max warnings exceeded - terminate interview
+        showError('Interview terminated: Multiple unauthorized persons detected. Please contact support.');
+      }
+    }
+
+    // Update status display
+    function updateStatus(type, message) {
+      statusDiv.className = `verification-status status-${type}`;
+      statusDiv.textContent = message;
+    }
+
+    // Show error modal
+    function showError(message) {
+      clearInterval(verificationInterval);
+      stopCamera();
+      
+      document.getElementById('errorMessage').textContent = message;
+      errorModal.style.display = 'flex';
+    }
+
+    // Stop camera
+    function stopCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+    }
+
+    // Event Listeners
+    startBtn.addEventListener('click', () => {
+      if (isVerified) {
+        clearInterval(verificationInterval);
+        stopCamera();
+        window.location.href = `/start_interview?domain=${encodeURIComponent(domain)}`;
+      }
+    });
+
+    document.getElementById('retryBtn').addEventListener('click', async () => {
+      warningModal.style.display = 'none';
+      updateStatus('verifying', '🔍 Re-verifying...');
+      await initCamera();
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      stopCamera();
+      window.location.href = '/index';
+    });
+
+    document.getElementById('errorOkBtn').addEventListener('click', () => {
+      window.location.href = '/index';
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      stopCamera();
+      clearInterval(verificationInterval);
+    });
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', initCamera);
+  </script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - AI Virtual Interviewer</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 20px;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    body::before {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+      top: -200px;
+      right: -100px;
+    }
+
+    body::after {
+      width: 350px;
+      height: 350px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.03), rgba(118, 75, 162, 0.03));
+      bottom: -150px;
+      left: -100px;
+    }
+
+    .register-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .register-box {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 35px 45px;
+      width: 100%;
+      border: 1px solid #f0f0f0;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .logo-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.25);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .logo-icon i {
+      font-size: 28px;
+      color: white;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .register-box h2 {
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .register-box p {
+      text-align: center;
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 25px;
+      font-weight: 400;
+    }
+
+    .mb-3 {
+      margin-bottom: 16px !important;
+    }
+
+    .form-label {
+      font-size: 13px;
+      color: #374151;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper .input-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 16px;
+      pointer-events: none;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+
+    .form-control {
+      padding: 12px 15px 12px 42px !important;
+      border-radius: 12px !important;
+      border: 2px solid #e5e7eb !important;
+      background: #fafafa !important;
+      font-size: 14px !important;
+      transition: all 0.3s ease !important;
+    }
+
+    .form-control:focus {
+      border-color: #667eea !important;
+      background-color: #fff !important;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+      transform: translateY(-1px);
+    }
+
+    .form-control:focus ~ .input-icon {
+      color: #667eea;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #9ca3af;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .toggle-password:hover {
+      color: #667eea;
+    }
+
+    /* Face Capture Section */
+    .face-capture-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+      border-radius: 15px;
+      border: 2px dashed #667eea;
+    }
+
+    .face-capture-section h5 {
+      color: #667eea;
+      font-size: 16px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .face-capture-section h5 i {
+      font-size: 20px;
+    }
+
+    #videoPreview {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
+      border-radius: 12px;
+      background: #000;
+      margin: 0 auto;
+      display: block;
+      object-fit: cover;
+    }
+
+    #capturedImage {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
+      border-radius: 12px;
+      margin: 0 auto;
+      display: none;
+      object-fit: cover;
+      border: 3px solid #10b981;
+    }
+
+    .capture-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .btn-capture {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-capture:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-retake {
+      background: #6b7280;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-retake:hover {
+      background: #4b5563;
+    }
+
+    .face-status {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .face-status.success {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .face-status.error {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    button.btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: white !important;
+      font-weight: 600 !important;
+      padding: 14px !important;
+      border-radius: 12px !important;
+      font-size: 15px !important;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+      margin-top: 6px;
+      border: none !important;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease !important;
+    }
+
+    button.btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+    }
+
+    button.btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .bottom-text {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 18px;
+    }
+
+    .bottom-text a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .bottom-text a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .register-box {
+        padding: 30px 25px;
+      }
+      #videoPreview, #capturedImage {
+        height: 250px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container register-container">
+    <div class="register-box mx-auto">
+      <div class="logo-container">
+        <div class="logo-icon">
+          <i class="fas fa-robot"></i>
+        </div>
+      </div>
+
+      <h2>Create Account</h2>
+      <p>Join AI Virtual Interviewer to begin your journey</p>
+
+       {% if message %}
+      <div class="alert alert-{{ flag }}" role="alert">
+        {{ message }}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/register" id="registrationForm">
+        <div class="mb-3">
+          <label for="name" class="form-label">Full Name</label>
+          <div class="input-wrapper">
+            <input type="text" class="form-control" id="name" name="name" placeholder="John Doe" required>
+            <i class="fas fa-user input-icon"></i>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email Address</label>
+          <div class="input-wrapper">
+            <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
+            <i class="fas fa-envelope input-icon"></i>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-wrapper password-wrapper">
+            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+            <i class="fas fa-lock input-icon"></i>
+            <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="confirm" class="form-label">Confirm Password</label>
+          <div class="input-wrapper password-wrapper">
+            <input type="password" class="form-control" id="confirm" name="confirmpassword" placeholder="Confirm your password" required>
+            <i class="fas fa-lock input-icon"></i>
+            <i class="fas fa-eye toggle-password" id="toggleConfirm"></i>
+          </div>
+        </div>
+
+        <!-- Face Capture Section -->
+        <div class="face-capture-section">
+          <h5><i class="fas fa-camera"></i> Capture Your Face for Verification</h5>
+          <p style="font-size: 12px; color: #6b7280; text-align: center; margin-bottom: 15px;">
+            This helps us verify your identity during interviews
+          </p>
+          
+          <video id="videoPreview" autoplay></video>
+          <img id="capturedImage" alt="Captured Face">
+          
+          <div class="capture-buttons">
+            <button type="button" class="btn-capture" id="captureBtn">
+              <i class="fas fa-camera"></i> Capture Face
+            </button>
+            <button type="button" class="btn-retake" id="retakeBtn" style="display: none;">
+              <i class="fas fa-redo"></i> Retake
+            </button>
+          </div>
+          
+          <div class="face-status" id="faceStatus">
+            Please position your face in the frame
+          </div>
+        </div>
+
+        <input type="hidden" name="face_image" id="faceImageData">
+
+        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
+      </form>
+
+      <div class="bottom-text">
+        Already have an account? <a href="/">Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    let videoStream = null;
+    let faceCaptured = false;
+
+    // Password toggle
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const password = document.getElementById('password');
+      const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+      password.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
+    });
+
+    document.getElementById('toggleConfirm').addEventListener('click', function() {
+      const confirm = document.getElementById('confirm');
+      const type = confirm.getAttribute('type') === 'password' ? 'text' : 'password';
+      confirm.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
+    });
+
+    // Start video stream
+    async function startCamera() {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 } 
+        });
+        document.getElementById('videoPreview').srcObject = videoStream;
+      } catch (err) {
+        document.getElementById('faceStatus').textContent = 'Camera access denied!';
+        document.getElementById('faceStatus').className = 'face-status error';
+        console.error('Camera error:', err);
+      }
+    }
+
+    // Capture face
+    document.getElementById('captureBtn').addEventListener('click', function() {
+      const video = document.getElementById('videoPreview');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
+      const imageData = canvas.toDataURL('image/jpeg');
+      document.getElementById('faceImageData').value = imageData;
+      
+      // Show captured image
+      const capturedImg = document.getElementById('capturedImage');
+      capturedImg.src = imageData;
+      capturedImg.style.display = 'block';
+      video.style.display = 'none';
+      
+      // Update buttons
+      this.style.display = 'none';
+      document.getElementById('retakeBtn').style.display = 'inline-block';
+      
+      // Update status
+      document.getElementById('faceStatus').textContent = '✓ Face captured successfully!';
+      document.getElementById('faceStatus').className = 'face-status success';
+      
+      // Enable submit button
+      document.getElementById('submitBtn').disabled = false;
+      faceCaptured = true;
+      
+      // Stop camera
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    // Retake photo
+    document.getElementById('retakeBtn').addEventListener('click', function() {
+      const video = document.getElementById('videoPreview');
+      const capturedImg = document.getElementById('capturedImage');
+      
+      capturedImg.style.display = 'none';
+      video.style.display = 'block';
+      
+      this.style.display = 'none';
+      document.getElementById('captureBtn').style.display = 'inline-block';
+      
+      document.getElementById('faceStatus').textContent = 'Please position your face in the frame';
+      document.getElementById('faceStatus').className = 'face-status';
+      
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('faceImageData').value = '';
+      faceCaptured = false;
+      
+      startCamera();
+    });
+
+    // Form validation
+    document.getElementById('registrationForm').addEventListener('submit', function(e) {
+      if (!faceCaptured) {
+        e.preventDefault();
+        alert('Please capture your face before registering!');
+        return false;
+      }
+      
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      
+      if (password !== confirm) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+        return false;
+      }
+    });
+
+    // Start camera on page load
+    window.addEventListener('load', startCamera);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+    });
+  </script>
+</body>
+</html>

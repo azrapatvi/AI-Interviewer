@@ -1,0 +1,699 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Interviewer - Interview in Progress</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      html, body {
+        background: #0b1120;
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      .container {display: flex;gap: 40px;align-items: flex-start;justify-content: center;width: 100%;max-width: 1600px;}
+      model-viewer {width: 800px;height: 850px;padding-top: 40px;border-radius: 20px;background: radial-gradient(circle at 50% 20%, #1a2a40, #0b1120);box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);flex-shrink: 0;}
+      .right-panel {display: flex;flex-direction: column;gap: 25px;align-items: center;width: 1000px;}
+      .camera-box {
+        width: 100%;
+        height: 300px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 0 25px rgba(0,0,0,0.6);
+        background: #101a30;
+        position: relative;
+      }
+      #videoElement {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      #canvas {display: none;}
+      
+      .security-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 10;
+      }
+      .security-ok {color: #10b981; border: 2px solid #10b981;}
+      .security-warning {color: #f59e0b; border: 2px solid #f59e0b;}
+      .security-error {color: #ef4444; border: 2px solid #ef4444;}
+
+      .confidence-indicator {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 10;
+        color: #10b981;
+        border: 2px solid #10b981;
+      }
+      
+      textarea {width: 96%;height: 150px;resize: none;border: none;border-radius: 12px;padding: 14px;font-size: 16px;background: #141b2d;color: white;box-shadow: 0 0 15px rgba(0,0,0,0.4);outline: none;transition: box-shadow 0.3s;}
+      textarea:focus {box-shadow: 0 0 15px rgba(0, 120, 255, 0.6);}
+      button {background: hsl(216, 84%, 52%);border: none;color: white;padding: 12px 22px;border-radius: 10px;font-weight: bold;font-size: 17px;cursor: pointer;transition: background 0.3s;width: 100%;}
+      button:hover {background: #388bff;}
+      button:disabled {background: #666;cursor: not-allowed;}
+      .btn-row {display: flex;gap: 10px;width: 100%;}
+      
+      #feedbackModal, #warningModal {display: none;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0,0,0,0.7);justify-content: center;align-items: center;z-index: 9999;}
+      .modal-content {background: #ffffff;color: #000000;padding: 20px;border-radius: 10px;width: 450px;text-align: center;box-shadow: 0 0 20px rgba(0,0,0,0.3);animation: fadeIn 0.4s ease-in-out;max-height: 70vh;overflow-y: auto;}
+      .modal-content.warning {border: 3px solid #ef4444;}
+      .modal-content h3 {margin-top: 0;}
+      #feedbackText, #warningText {white-space: pre-wrap;text-align: left;max-height: 60vh;overflow-y: auto;}
+      @keyframes fadeIn {from {opacity: 0;transform: scale(0.9);}to {opacity: 1;transform: scale(1);}}
+      .modal-content button {background: #007bff;border: none;color: white;padding: 8px 18px;margin: 5px;border-radius: 5px;font-size: 16px;cursor: pointer;}
+      .modal-content button.danger {background: #ef4444;}
+      .progress-bar {width: 100%;height: 8px;background: #1a2a40;border-radius: 4px;overflow: hidden;margin-bottom: 20px;}
+      .progress-fill {height: 100%;background: linear-gradient(90deg, #4f46e5, #7c3aed);transition: width 0.3s ease;}
+      .question-counter {color: white;font-size: 14px;text-align: center;margin-bottom: 10px;}
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <model-viewer src="/static/model.glb" camera-orbit="-25deg 90deg 2m"
+        camera-target="0m 1.5m 0m" field-of-view="5deg" shadow-intensity="1"
+        disable-zoom disable-pan disable-tap autoplay environment-image="neutral">
+      </model-viewer>
+
+      <div class="right-panel">
+        <div class="question-counter" id="questionCounter">Question 1 of 10</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 10%"></div>
+        </div>
+        
+        <div class="camera-box">
+          <div id="securityIndicator" class="security-indicator security-ok">🔒 Secure</div>
+          <video id="videoElement" autoplay playsinline></video>
+          <canvas id="canvas"></canvas>
+        </div>
+
+        <textarea readonly id="questionBox" placeholder="Question will appear here..."></textarea>
+        <textarea id="answerBox" placeholder="Your answer or voice transcript will appear here..."></textarea>
+
+        <div class="btn-row">
+          <button id="recordBtn" onclick="toggleRecording()">🎙 Start Recording</button>
+          <button id="submitBtn" onclick="submitAnswer()">✅ Submit Answer</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="feedbackModal">
+      <div class="modal-content">
+        <h3>Interview Feedback</h3>
+        <p id="feedbackText"></p>
+        <button id="okButton">OK</button>
+      </div>
+    </div>
+
+    <div id="warningModal">
+      <div class="modal-content warning">
+        <h3>⚠️ Security Warning</h3>
+        <p id="warningText"></p>
+        <button id="warningOkBtn">OK</button>
+        <button class="danger" id="terminateBtn">Terminate Interview</button>
+      </div>
+    </div>
+
+  <script>
+  // ==================== GLOBAL VARIABLES ====================
+  let questionIndex = 0, allQuestions = [], mediaRecorder = null, audioChunks = [], isRecording = false;
+  let interviewStartTime = new Date();
+  let videoStream = null;
+  let monitoringInterval = null;
+  let warningCount = 0;
+  const MAX_WARNINGS = 1;
+  let interviewTerminated = false;
+
+  // REAL CONFIDENCE TRACKING
+  let confidenceScores = [];
+  let emotionSamples = [];
+  let latestConfidence = 0;
+
+  let interviewData = {
+    questions: [],
+    answers: [],
+    feedback: [],
+    scores: [],
+    domain: ""
+  };
+
+  // ==================== CAMERA INITIALIZATION ====================
+  async function initCamera() {
+    try {
+      const video = document.getElementById('videoElement');
+      videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      video.srcObject = videoStream;
+      
+      startFaceMonitoring();
+    } catch (error) {
+      console.error("Camera error:", error);
+      alert("Camera access required for interview security.");
+    }
+  }
+
+  // ==================== FACE MONITORING ====================
+  function captureFrame() {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    return canvas.toDataURL('image/jpeg', 0.8);
+  }
+
+  async function checkFace() {
+    if (interviewTerminated) return;
+    
+    try {
+      const imageData = captureFrame();
+      const formData = new FormData();
+      formData.append('face_image', imageData);
+
+      const response = await fetch('/monitor_interview_face', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      updateSecurityIndicator(result);
+      
+      if (result.action === 'multiple_faces') {
+        handleSecurityViolation(result.message);
+      } else if (result.action === 'warning') {
+        updateSecurityIndicator({success: false, message: result.message});
+      } else if (result.action === 'terminate') {
+        terminateInterview('Session expired');
+      }
+    } catch (error) {
+      console.error("Monitoring error:", error);
+    }
+  }
+
+  // ==================== REAL-TIME CONFIDENCE ANALYSIS ====================
+  async function analyzeConfidenceFromVideo() {
+    if (interviewTerminated) return;
+    
+    try {
+      const imageData = captureFrame();
+      const formData = new FormData();
+      formData.append('face_image', imageData);
+
+      const response = await fetch('/analyze_confidence', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.confidence) {
+        latestConfidence = result.confidence;
+        confidenceScores.push(result.confidence);
+        
+        if (result.emotion) {
+          emotionSamples.push(result.emotion);
+        }
+        
+        // Update UI with live confidence
+        updateConfidenceDisplay(result.confidence, result.emotion);
+        
+        console.log(`📊 Real-time Confidence: ${result.confidence}%, Emotion: ${result.emotion || 'neutral'}`);
+      }
+    } catch (error) {
+      console.error("Confidence analysis error:", error);
+    }
+  }
+
+  function updateConfidenceDisplay(confidence, emotion) {
+    const indicator = document.getElementById('confidenceIndicator');
+    
+    // Emoji based on confidence level
+    let emoji = '😐';
+    if (confidence >= 80) emoji = '😄';
+    else if (confidence >= 60) emoji = '🙂';
+    else if (confidence >= 40) emoji = '😕';
+    else emoji = '😰';
+    
+    indicator.textContent = `${emoji} Confidence: ${confidence}%`;
+    
+    // Color based on confidence
+    if (confidence >= 70) {
+      indicator.style.color = '#10b981';
+      indicator.style.borderColor = '#10b981';
+    } else if (confidence >= 50) {
+      indicator.style.color = '#f59e0b';
+      indicator.style.borderColor = '#f59e0b';
+    } else {
+      indicator.style.color = '#ef4444';
+      indicator.style.borderColor = '#ef4444';
+    }
+  }
+
+  function updateSecurityIndicator(result) {
+    const indicator = document.getElementById('securityIndicator');
+    
+    if (result.success) {
+      indicator.className = 'security-indicator security-ok';
+      indicator.textContent = '🔒 Secure';
+    } else {
+      if (result.action === 'multiple_faces') {
+        indicator.className = 'security-indicator security-error';
+        indicator.textContent = '⚠️ Multiple Faces';
+      } else {
+        indicator.className = 'security-indicator security-warning';
+        indicator.textContent = '⚠️ Warning';
+      }
+    }
+  }
+
+  function startFaceMonitoring() {
+    monitoringInterval = setInterval(() => {
+      checkFace();
+      analyzeConfidenceFromVideo();  // Analyze confidence every 3 seconds
+    }, 3000);
+  }
+
+  function stopFaceMonitoring() {
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+      monitoringInterval = null;
+    }
+  }
+
+  // ==================== SECURITY VIOLATION HANDLING ====================
+  function handleSecurityViolation(message) {
+    stopFaceMonitoring();
+    warningCount++;
+    
+    const warningModal = document.getElementById('warningModal');
+    const warningText = document.getElementById('warningText');
+    
+    if (warningCount <= MAX_WARNINGS) {
+      warningText.textContent = `${message}\n\nThis is warning ${warningCount} of ${MAX_WARNINGS}. Please ensure only you are visible in the camera. Click OK to continue or Terminate to end the interview.`;
+      warningModal.style.display = 'flex';
+    } else {
+      terminateInterview('Multiple security violations detected. Interview terminated.');
+    }
+  }
+
+  document.getElementById('warningOkBtn').addEventListener('click', () => {
+    document.getElementById('warningModal').style.display = 'none';
+    
+    setTimeout(async () => {
+      const imageData = captureFrame();
+      const formData = new FormData();
+      formData.append('face_image', imageData);
+
+      const response = await fetch('/monitor_interview_face', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.action === 'multiple_faces') {
+        terminateInterview('Multiple people still detected. Interview terminated for security reasons.');
+      } else if (result.success) {
+        warningCount = 0;
+        startFaceMonitoring();
+      } else {
+        updateSecurityIndicator(result);
+        startFaceMonitoring();
+      }
+    }, 5000);
+  });
+
+  document.getElementById('terminateBtn').addEventListener('click', () => {
+    terminateInterview('Interview terminated by user');
+  });
+
+  function terminateInterview(reason) {
+    interviewTerminated = true;
+    stopFaceMonitoring();
+    stopCamera();
+    
+    alert(reason);
+    window.location.href = '/index';
+  }
+
+  function stopCamera() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
+  }
+
+  // ==================== HELPER FUNCTIONS ====================
+  async function safeJsonFetch(url, options={}) {
+    try { 
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return { ok:true, data: await res.json() };
+    } catch(e) { 
+      console.error(e); 
+      return { ok:false, error:e.message }; 
+    }
+  }
+
+  function getDomainFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("domain") || "python";
+  }
+
+  function extractScoreFromFeedback(feedback) {
+    if (!feedback) return 5;
+    const scoreMatch = feedback.match(/score[:\s]+(\d+)/i);
+    if (scoreMatch) return parseInt(scoreMatch[1]);
+    const outOfMatch = feedback.match(/(\d+)\s*\/\s*10/);
+    if (outOfMatch) return parseInt(outOfMatch[1]);
+    const lower = feedback.toLowerCase();
+    if (lower.includes('excellent') || lower.includes('perfect')) return 9;
+    if (lower.includes('very good') || lower.includes('great')) return 8;
+    if (lower.includes('good')) return 7;
+    if (lower.includes('satisfactory') || lower.includes('adequate')) return 6;
+    if (lower.includes('partial') || lower.includes('moderate')) return 5;
+    if (lower.includes('poor') || lower.includes('weak')) return 4;
+    if (lower.includes('incorrect') || lower.includes('wrong')) return 3;
+    return 5;
+  }
+
+  // ==================== QUESTION LOADING ====================
+  async function loadQuestions(domain) {
+    interviewData.domain = domain;
+    const res = await safeJsonFetch(`/get_questions?domain=${encodeURIComponent(domain)}`);
+    if (res.ok && res.data.success && res.data.questions.length > 0) {
+      allQuestions = res.data.questions;
+      updateProgress();
+      playQuestion(allQuestions[0]);
+    } else {
+      document.getElementById("questionBox").value = "No questions found.";
+    }
+  }
+
+  function updateProgress() {
+    const counter = document.getElementById("questionCounter");
+    const fill = document.getElementById("progressFill");
+    const progress = ((questionIndex + 1) / allQuestions.length) * 100;
+    counter.textContent = `Question ${questionIndex + 1} of ${allQuestions.length}`;
+    fill.style.width = `${progress}%`;
+  }
+
+  async function playQuestion(text) {
+    const box = document.getElementById("questionBox"); 
+    box.value="";
+    for (let i=0;i<text.length;i++){
+      box.value+=text[i];
+      await new Promise(r=>setTimeout(r,20));
+    }
+    try { 
+      const u=new SpeechSynthesisUtterance(text);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }catch{}
+  }
+
+  // ==================== RECORDING ====================
+  async function toggleRecording() {
+    if (interviewTerminated) return;
+    
+    const btn=document.getElementById("recordBtn");
+    if(!isRecording){
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder=new MediaRecorder(stream);
+        audioChunks=[];
+        mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data)};
+        mediaRecorder.onstop=async()=>{ 
+          btn.disabled=true;
+          btn.textContent="⏳ Transcribing...";
+          await sendAudio();
+          btn.disabled=false;
+          btn.textContent="🎙 Start Recording"
+        };
+        mediaRecorder.start();
+        isRecording=true;
+        btn.textContent="🛑 Stop Recording";
+      }catch(e){
+        alert("Mic access denied "+e);
+      }
+    }else{
+      mediaRecorder.stop();
+      isRecording=false;
+    }
+  }
+
+  async function sendAudio(){
+    if(!audioChunks.length)return alert("No audio recorded.");
+    const blob=new Blob(audioChunks,{type:"audio/wav"});
+    const fd=new FormData();
+    fd.append("file",blob,"recording.wav");
+    const res=await safeJsonFetch("/transcribe_uploaded_audio",{method:"POST",body:fd});
+    if(res.ok&&res.data.success){
+      document.getElementById("answerBox").value=res.data.text||"";
+    } else {
+      alert("Transcription failed");
+    }
+  }
+
+  // ==================== FEEDBACK MODAL ====================
+  function showFeedbackModal(feedback){
+    const modal = document.getElementById("feedbackModal");
+    document.getElementById("feedbackText").textContent = feedback;
+    modal.style.display = "flex";
+
+    const ok = document.getElementById("okButton");
+    ok.replaceWith(ok.cloneNode(true));
+    const newOk = document.getElementById("okButton");
+
+    newOk.onclick = async () => {
+      speechSynthesis.cancel();
+      try {
+        await fetch("/stop_speaking", { method: "POST" });
+      } catch(e) {
+        console.error("Failed to stop speech:", e);
+      }
+      modal.style.display = "none";
+      nextQuestion();
+    };
+  }
+
+  function nextQuestion(){
+    if (interviewTerminated) return;
+    
+    questionIndex++;
+    if(questionIndex<allQuestions.length){
+      document.getElementById("answerBox").value="";
+      updateProgress();
+      playQuestion(allQuestions[questionIndex]);
+    }else{
+      completeInterview();
+    }
+  }
+
+  // ==================== SUBMIT ANSWER ====================
+  async function submitAnswer(){
+    if (interviewTerminated) return;
+    
+    const answer=document.getElementById("answerBox").value.trim();
+    if(!answer)return alert("Please answer first.");
+    
+    const question=allQuestions[questionIndex];
+    const domain=getDomainFromURL();
+    
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "⏳ Evaluating...";
+    
+    const res=await safeJsonFetch("/evaluate_answer",{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:new URLSearchParams({question,answer,domain})
+    });
+    
+    submitBtn.disabled = false;
+    submitBtn.textContent = "✅ Submit Answer";
+    
+    if(!res.ok) {
+      alert("Evaluation failed");
+      return;
+    }
+    
+    const fb=res.data.feedback||"No feedback";
+    const score = extractScoreFromFeedback(fb);
+    
+    interviewData.questions.push(question);
+    interviewData.answers.push(answer);
+    interviewData.feedback.push(fb);
+    interviewData.scores.push(score);
+    
+    showFeedbackModal(fb);
+  }
+
+  // ==================== CALCULATE REAL CONFIDENCE ====================
+  function calculateAverageConfidence() {
+    if (confidenceScores.length === 0) {
+      console.log("⚠️ No confidence data collected");
+      return 50; // Default if no data
+    }
+    
+    const avgConfidence = Math.round(
+      confidenceScores.reduce((a, b) => a + b, 0) / confidenceScores.length
+    );
+    
+    console.log(`📊 Final Average Confidence: ${avgConfidence}% from ${confidenceScores.length} samples`);
+    console.log(`📊 Confidence range: ${Math.min(...confidenceScores)}% - ${Math.max(...confidenceScores)}%`);
+    console.log(`📊 Emotions detected:`, emotionSamples);
+    
+    return avgConfidence;
+  }
+
+  // ==================== COMPLETE INTERVIEW ====================
+  async function completeInterview(){
+    if (interviewTerminated) return;
+    
+    stopFaceMonitoring();
+    stopCamera();
+    
+    const endTime = new Date();
+    const durationMs = endTime - interviewStartTime;
+    const minutes = Math.floor(durationMs / 60000);
+    const seconds = Math.floor((durationMs % 60000) / 1000);
+    const duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    const totalQuestions = interviewData.questions.length;
+    const averageScore = interviewData.scores.reduce((a, b) => a + b, 0) / totalQuestions;
+    const accuracy = Math.round(averageScore * 10);
+    const confidence = calculateAverageConfidence(); // Use REAL camera-based confidence
+    //const correctness = interviewData.scores.filter(s => s >= 7).length;
+    const overallScore = Math.round((accuracy + confidence) / 2);
+
+    console.log('📊 Complete Interview Data:', {
+      domain: interviewData.domain,
+      totalQuestions: totalQuestions,
+      averageScore: averageScore,
+      accuracy: accuracy,
+      confidence: confidence,
+      confidenceSamples: confidenceScores.length,
+    // correctness: correctness,
+      overallScore: overallScore
+    });
+
+    const saveData = {
+      domain: interviewData.domain,
+      duration: duration,
+      totalQuestions: totalQuestions,
+      confidence: confidence,
+      accuracy: accuracy,
+      //correctness: correctness,
+      overallScore: overallScore,
+      questions: interviewData.questions,
+      answers: interviewData.answers
+    };
+
+    console.log('💾 Sending to backend for Gemini analysis...');
+
+    try {
+      const saveResponse = await fetch('/save_interview_result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saveData)
+      });
+
+      const saveResult = await saveResponse.json();
+
+      if (saveResult.success) {
+        alert('🎉 Interview completed! Generating personalized report...');
+        setTimeout(() => {
+          window.location.href = saveResult.redirectUrl;
+        }, 1000);
+      } else {
+        alert(`Save failed: ${saveResult.error}`);
+        window.location.href = '/index';
+      }
+    } catch (error) {
+      console.error("❌ Save error:", error);
+      alert("Completed but save failed. Redirecting...");
+      window.location.href = '/index';
+    }
+  }
+
+  // ==================== CLEANUP ====================
+  window.addEventListener('beforeunload', () => {
+    stopFaceMonitoring();
+    stopCamera();
+  });
+
+  // ==================== INITIALIZE ====================
+  window.addEventListener("DOMContentLoaded", async () => {
+    await initCamera();
+    await loadQuestions(getDomainFromURL());
+  });
+  // ==================== TAB SWITCH MONITORING ====================
+
+  // Count how many times user switched tab
+  let tabSwitchCount = 0;
+  const MAX_TAB_WARNINGS = 1; // 1 warning, 2nd time = terminate
+
+  function handleTabSwitch() {
+    if (interviewTerminated) return;
+
+    if (document.visibilityState === "hidden") {
+      // User switched tab or minimized window
+      tabSwitchCount++;
+
+      if (tabSwitchCount <= MAX_TAB_WARNINGS) {
+        // Show warning one time
+        showTabWarning(tabSwitchCount);
+      } else {
+        // Terminate on second attempt
+        terminateInterview("Interview terminated because you switched tabs multiple times.");
+      }
+    }
+  }
+
+  // Listen when tab visibility changes
+  document.addEventListener("visibilitychange", handleTabSwitch);
+
+  // Show warning modal
+  function showTabWarning(count) {
+    const warningModal = document.getElementById("warningModal");
+    const warningText = document.getElementById("warningText");
+
+    warningText.textContent =
+      `⚠️ Tab Switch Detected!\n\n` +
+      `This is warning ${count} of ${MAX_TAB_WARNINGS}.\n` +
+      `Do not switch tabs during the interview.\n\n` +
+      `Click OK to continue or Terminate to end the interview.`;
+
+    warningModal.style.display = "flex";
+  }
+
+  </script>
+  </body>
+  </html>

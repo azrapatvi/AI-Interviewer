@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interviewer - Virtual Interview</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            overflow: hidden;
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(-20px);}
+            100% { opacity: 1; transform: translateY(0);}
+        }
+
+        .info-section {
+            flex: 1;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 48px 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .info-section h2 {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        .info-section p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .features {
+            margin-top: 24px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .feature-item span {
+            font-size: 20px;
+        }
+
+        .login-section {
+            flex: 1;
+            padding: 48px 32px;
+        }
+
+        h1 { text-align: center; margin-bottom: 32px; font-size: 28px; color: #4f46e5; }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; color: #1f2937; }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        input:focus { border-color: #4f46e5; outline: none; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .submit-btn:hover { background: #4338ca; transform: translateY(-2px); }
+
+        .google-btn { margin-top: 16px; width: 100%; display: flex; justify-content: center; }
+        .forgot-password { text-align: right; margin-top: 8px; font-size: 13px; }
+        .forgot-password a { color: #4f46e5; text-decoration: none; }
+        .forgot-password a:hover { text-decoration: underline; }
+
+        .signup-link { text-align: center; margin-top: 12px; font-size: 14px; }
+        .signup-link a { color: #4f46e5; text-decoration: none; font-weight: 500; }
+        .signup-link a:hover { text-decoration: underline; }
+
+        .success-message {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Info Section -->
+        <div class="info-section">
+            <h2>Welcome to AI Virtual Interviewer</h2>
+            <p>Practice your interviews in a realistic AI-driven environment. Get instant feedback, track progress, and improve your confidence for real-world interviews.</p>
+            <div class="features">
+                <div class="feature-item"><span>🧠</span> AI-powered feedback</div>
+                <div class="feature-item"><span>📈</span> Track your progress</div>
+                <div class="feature-item"><span>💡</span> Learn domain-specific skills</div>
+                <div class="feature-item"><span>⏱</span> Time yourself for real interviews</div>
+            </div>
+        </div>
+
+        <!-- Login Section -->
+        <div class="login-section">
+            <h1>Login</h1>
+
+            <div class="success-message" id="successMessage">Login Successful!</div>
+
+            <form method="post" action="/">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Your password" required>
+                </div>
+
+                <div class="forgot-password">
+                    <a href="#">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+
+            <!-- Google Sign-In -->
+            <div class="google-btn">
+                <div id="g_id_onload"
+                     data-client_id="623713831021-guc6ukl353lp13thm7cio6ece57sic9k.apps.googleusercontent.com"
+                     data-login_uri="http://localhost:5000/auth/google"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" data-type="standard"></div>
+            </div>
+
+            <!-- Signup link -->
+            <div class="signup-link">
+                Don't have an account? <a href="/register">Sign Up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Email/password login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('http://localhost:5000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if(res.ok){
+                    document.getElementById('successMessage').innerText = 'Login Successful!';
+                    document.getElementById('successMessage').style.display = 'block';
+                    console.log('JWT Token:', data.token);
+                    window.location.href = "dashboard.html"; // redirect after login
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Google Sign-In callback
+        function handleCredentialResponse(response) {
+            fetch('http://localhost:5000/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.token){
+                    document.getElementById('successMessage').innerText = 'Google Login Successful!';
+                    document.getElementById('successMessage').style.display = 'block';
+                    console.log('JWT Token:', data.token);
+                    console.log('User info:', data.user);
+                    window.location.href = "dashboard.html"; // redirect after Google login
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => console.error(err));
+        }
+
+        window.handleCredentialResponse = handleCredentialResponse;
+    </script>
+</body>
+</html>
